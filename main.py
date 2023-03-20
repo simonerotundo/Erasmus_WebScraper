@@ -1,70 +1,131 @@
 import time
 import requests
 import urllib.request
+from glob import glob
 from bs4 import BeautifulSoup
 
 
-def send_message_on_telegram(message):
-    # definisco il token, la chat_id e il messaggio
-    token = '6274356700:AAHt9JWd5N5VLnfSyMaMUeB05L_JM8IkAwA'
-    chat_id = '157846555'
+def send_attachments_telegram(token, chat_id):
+    # URL dell'endpoint Telegram per inviare documenti
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+
+    # cerco tutti i file PDF nella directory corrente
+    pdf_files = glob("*.pdf")
+
+    # itero sui file PDF trovati
+    for file_path in pdf_files:
+        try:
+            # Invia la richiesta POST con il file PDF come allegato
+            response = requests.post(url, data={"chat_id": chat_id}, files={"document": open(file_path, "rb")})
+
+            # Controlla lo status code della risposta
+            if response.status_code == 200:
+                print(f"File {file_path} inviato a chat ID {chat_id}!")
+            else:
+                print(f"Errore nell'invio del file {file_path}: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Errore nella richiesta HTTP: {e}")
+
+
+def send_message_on_telegram(token, chat_id, msg_type):
+    # definisco il messaggio
+    default_message = 'Messaggio di default.'
+    first_message = 'La pagina è stata aggiornata'
+    last_message = 'Il mio lavoro qui è finito 🫡 '
+
+    # seleziono il messaggio da inviare
+    if msg_type == 0:
+        message = first_message
+    elif msg_type == 1:
+        message = last_message
+    else:
+        message = default_message
 
     # invio il messaggio
     url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={message}"
     print(requests.get(url).json())
 
 
-def download_attachment():  # TODO
-    #cerco tutti gli allegati
-    pass
+def setup_bot_telegram():
+    # definisco il token e il chat_id
+    token = '6274356700:AAHt9JWd5N5VLnfSyMaMUeB05L_JM8IkAwA'
+    chat_id = '157846555'
+    message = 'La pagina è stata aggiornata.'
+
+    # invio il messaggio e gli allegati
+    send_message_on_telegram(token, chat_id, 0)
+    send_attachments_telegram(token, chat_id)
+    send_message_on_telegram(token, chat_id, 1)
 
 
+def download_attachment(soup):
+    # cerco tramite classe
+    campi_documento = soup.findAll('div', attrs={'class': 'campoOggetto48'})
 
-def on_page_update():  # TODO: scaricare i pdf
-    # voglio scaricare tutti i pdf
-    # TODO
+    # ciclo su tutti i campi
+    for campo in campi_documento:
 
-    send_message_on_telegram('La pagina è stata aggiornata.')
+        # estraggo il nome del file
+        nome_documento = campo.find('a').text
+
+        # documenti di cui non mi interessa scaricare il .pdf
+        nome_documento_bando = 'Bando di Concorso per l_assegnazione delle borse di studio ERASMUS  Anno Accademico 2023_2024_SIGNED.pdf'
+        nome_documento_guida = 'MINIGUIDA COMPILAZIONE DOMANDA ERASMUS_2023-24.pdf'
+        if nome_documento != nome_documento_bando and nome_documento != nome_documento_guida:
+            # estraggo il link dall'attributo href
+            link = campo.find('a').get('href')
+
+            # scarico il file
+            urllib.request.urlretrieve(link, nome_documento)
 
 
-def scraping():
+def on_page_update(soup):
+    # scarico gli allegati
+    download_attachment(soup)
+
+    # invio un messaggio su telegram
+    setup_bot_telegram()
+
+
+def start_scraping(soup):
     while True:
-        # url del sito
-        quote_page = 'https://unical.portaleamministrazionetrasparente.it/index.php?id_oggetto=22&id_doc=12537'
-
-        # scarico il codice html della pagina
-        page = urllib.request.urlopen(quote_page)
-
-        # creo un oggetto BeautifulSoup
-        soup = BeautifulSoup(page, 'html.parser')
-
         # cerco tramite id
         creation_and_last_edit_date = soup.find('div', attrs={'id': 'dataAggiornamento12537'})
-        # print(creation_and_last_edit_date) # <div class="dataAggiornamento" id="dataAggiornamento12537">Contenuto creato il 02-02-2023 aggiornato al 02-02-2023</div>
 
         # memorizzo la prima data in una variabile
         creation_date = creation_and_last_edit_date.text.split(' ')[3]
-        print(f'creato in data {creation_date}.')  # 02-02-2023
 
         # memorizzo la seconda data in una variabile
         last_edit_date = creation_and_last_edit_date.text.split(' ')[6]
-        print(f'modificato in data {last_edit_date}.')  # 02-02-2023 (per ora)
 
         # confronto le due date
         if creation_date != last_edit_date:
-            print('La pagina è stata aggiornata.')
-            on_page_update()
-            send_message_on_telegram('Il mio lavoro qui è finito. 🫡')
+            on_page_update(soup)
             break
 
         # aspetto 30 minuti prima di ricontrollare
         time.sleep(30 * 60)
 
 
+def before_scraping():
+    # url del sito
+    quote_page = 'https://unical.portaleamministrazionetrasparente.it/index.php?id_oggetto=22&id_doc=12537'
+
+    # scarico il codice html della pagina
+    page = urllib.request.urlopen(quote_page)
+
+    # creo un oggetto BeautifulSoup
+    soup = BeautifulSoup(page, 'html.parser')
+
+    return soup
+
+
 def main():
-    print('Running...')
-    # scraping()
-    send_message_on_telegram('Prova')  # for test purposes only
+    # operazioni preliminari
+    soup = before_scraping()
+
+    # avvio lo scraper
+    start_scraping(soup)
 
 
 # main
