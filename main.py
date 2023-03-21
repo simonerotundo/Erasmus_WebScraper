@@ -3,6 +3,7 @@ import requests
 import urllib.request
 from glob import glob
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 
 def send_attachments_telegram(token, chat_id):
@@ -27,6 +28,16 @@ def send_attachments_telegram(token, chat_id):
             print(f"Errore nella richiesta HTTP: {e}")
 
 
+def send_custom_message_on_telegram(custom_msg):
+    # definisco il token e il chat_id
+    token = '6274356700:AAHt9JWd5N5VLnfSyMaMUeB05L_JM8IkAwA'
+    chat_id = '157846555'
+
+    # invio il messaggio
+    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={custom_msg}"
+    requests.get(url).json()
+
+
 def send_message_on_telegram(token, chat_id, msg_type):
     # definisco il messaggio
     default_message = 'Messaggio di default.'
@@ -43,7 +54,7 @@ def send_message_on_telegram(token, chat_id, msg_type):
 
     # invio il messaggio
     url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={message}"
-    print(requests.get(url).json())
+    requests.get(url).json()
 
 
 def setup_bot_telegram():
@@ -87,6 +98,19 @@ def on_page_update(soup):
     setup_bot_telegram()
 
 
+def print_last_scrape_time():
+    # inizializzo il tempo
+    date_time = datetime.now()
+
+    # memorizzo l'ora, i minuti e i secondi
+    hh = str(date_time.hour)
+    mm = str(date_time.minute)
+    ss = str(date_time.second)
+
+    # li stampo
+    print('Scraped at: ' + hh + ':' + mm + ':' + ss)
+
+
 def start_scraping(soup):
     while True:
         # cerco tramite id
@@ -121,6 +145,11 @@ def before_scraping():
 
 
 def main():
+    # stampo e invio un messaggio su telegram
+    running_msg = 'running..'
+    print(running_msg)
+    send_custom_message_on_telegram(running_msg)
+
     # operazioni preliminari
     soup = before_scraping()
 
