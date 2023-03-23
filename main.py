@@ -30,8 +30,8 @@ def send_attachments_telegram(token, chat_id):
 
 def send_custom_message_on_telegram(custom_msg):
     # definisco il token e il chat_id
-    token = '6274356700:AAHt9JWd5N5VLnfSyMaMUeB05L_JM8IkAwA'
-    chat_id = '157846555'
+    token = 'INSERISCI_IL_TUO_TOKEN'
+    chat_id = 'INSERISCI IL TUO CHAT_ID'
 
     # invio il messaggio
     url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={custom_msg}"
@@ -59,8 +59,8 @@ def send_message_on_telegram(token, chat_id, msg_type):
 
 def setup_bot_telegram():
     # definisco il token e il chat_id
-    token = '6274356700:AAHt9JWd5N5VLnfSyMaMUeB05L_JM8IkAwA'
-    chat_id = '157846555'
+    token = 'INSERISCI_IL_TUO_TOKEN'
+    chat_id = 'INSERISCI IL TUO CHAT_ID'
     message = 'La pagina è stata aggiornata.'
 
     # invio il messaggio e gli allegati
@@ -113,6 +113,9 @@ def print_last_scrape_time():
 
 def start_scraping(soup):
     while True:
+        # invio un messaggio
+        send_custom_message_on_telegram('controllo il sito.. 🕵🏻')
+
         # cerco tramite id
         creation_and_last_edit_date = soup.find('div', attrs={'id': 'dataAggiornamento12537'})
 
@@ -126,9 +129,11 @@ def start_scraping(soup):
         if creation_date != last_edit_date:
             on_page_update(soup)
             break
+        else:
+            send_custom_message_on_telegram('niente di nuovo ☹️')
 
         # aspetto 30 minuti prima di ricontrollare
-        time.sleep(30 * 60)
+        time.sleep(10*60)
 
 
 def before_scraping():
@@ -146,7 +151,7 @@ def before_scraping():
 
 def main():
     # stampo e invio un messaggio su telegram
-    running_msg = 'running..'
+    running_msg = 'operativo 🫡'
     print(running_msg)
     send_custom_message_on_telegram(running_msg)
 
